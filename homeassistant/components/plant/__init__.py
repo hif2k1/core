@@ -1,4 +1,5 @@
 """Support for monitoring plants."""
+
 from collections import deque
 from contextlib import suppress
 from datetime import datetime, timedelta
@@ -9,7 +10,6 @@ import voluptuous as vol
 from homeassistant.components.recorder import get_instance, history
 from homeassistant.const import (
     ATTR_UNIT_OF_MEASUREMENT,
-    CONDUCTIVITY,
     CONF_SENSORS,
     LIGHT_LUX,
     PERCENTAGE,
@@ -17,9 +17,16 @@ from homeassistant.const import (
     STATE_PROBLEM,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
+    UnitOfConductivity,
     UnitOfTemperature,
 )
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import (
+    Event,
+    EventStateChangedData,
+    HomeAssistant,
+    State,
+    callback,
+)
 from homeassistant.exceptions import HomeAssistantError
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import Entity
@@ -141,7 +148,7 @@ class Plant(Entity):
             "max": CONF_MAX_MOISTURE,
         },
         READING_CONDUCTIVITY: {
-            ATTR_UNIT_OF_MEASUREMENT: CONDUCTIVITY,
+            ATTR_UNIT_OF_MEASUREMENT: UnitOfConductivity.MICROSIEMENS,
             "min": CONF_MIN_CONDUCTIVITY,
             "max": CONF_MAX_CONDUCTIVITY,
         },
@@ -176,15 +183,16 @@ class Plant(Entity):
         self._brightness_history = DailyHistory(self._conf_check_days)
 
     @callback
-    def _state_changed_event(self, event):
+    def _state_changed_event(self, event: Event[EventStateChangedData]) -> None:
         """Sensor state change event."""
-        self.state_changed(event.data.get("entity_id"), event.data.get("new_state"))
+        self.state_changed(event.data["entity_id"], event.data["new_state"])
 
     @callback
-    def state_changed(self, entity_id, new_state):
+    def state_changed(self, entity_id: str, new_state: State | None) -> None:
         """Update the sensor status."""
         if new_state is None:
             return
+        value: str | float
         value = new_state.state
         _LOGGER.debug("Received callback from %s with value %s", entity_id, value)
         if value == STATE_UNKNOWN:

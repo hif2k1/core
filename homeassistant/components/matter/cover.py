@@ -1,4 +1,5 @@
 """Matter cover."""
+
 from __future__ import annotations
 
 from enum import IntEnum
@@ -199,7 +200,9 @@ class MatterCover(MatterEntity, CoverEntity):
 DISCOVERY_SCHEMAS = [
     MatterDiscoverySchema(
         platform=Platform.COVER,
-        entity_description=CoverEntityDescription(key="MatterCover"),
+        entity_description=CoverEntityDescription(
+            key="MatterCover", translation_key="cover"
+        ),
         entity_class=MatterCover,
         required_attributes=(
             clusters.WindowCovering.Attributes.OperationalStatus,
@@ -212,7 +215,9 @@ DISCOVERY_SCHEMAS = [
     ),
     MatterDiscoverySchema(
         platform=Platform.COVER,
-        entity_description=CoverEntityDescription(key="MatterCoverPositionAwareLift"),
+        entity_description=CoverEntityDescription(
+            key="MatterCoverPositionAwareLift", translation_key="cover"
+        ),
         entity_class=MatterCover,
         required_attributes=(
             clusters.WindowCovering.Attributes.OperationalStatus,
@@ -225,7 +230,9 @@ DISCOVERY_SCHEMAS = [
     ),
     MatterDiscoverySchema(
         platform=Platform.COVER,
-        entity_description=CoverEntityDescription(key="MatterCoverPositionAwareTilt"),
+        entity_description=CoverEntityDescription(
+            key="MatterCoverPositionAwareTilt", translation_key="cover"
+        ),
         entity_class=MatterCover,
         required_attributes=(
             clusters.WindowCovering.Attributes.OperationalStatus,
@@ -239,7 +246,7 @@ DISCOVERY_SCHEMAS = [
     MatterDiscoverySchema(
         platform=Platform.COVER,
         entity_description=CoverEntityDescription(
-            key="MatterCoverPositionAwareLiftAndTilt"
+            key="MatterCoverPositionAwareLiftAndTilt", translation_key="cover"
         ),
         entity_class=MatterCover,
         required_attributes=(

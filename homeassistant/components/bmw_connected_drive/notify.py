@@ -1,9 +1,11 @@
 """Support for BMW notifications."""
+
 from __future__ import annotations
 
 import logging
 from typing import Any, cast
 
+from bimmer_connected.models import MyBMWAPIError
 from bimmer_connected.vehicle import MyBMWVehicle
 
 from homeassistant.components.notify import (
@@ -19,10 +21,10 @@ from homeassistant.const import (
     CONF_ENTITY_ID,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
-from .const import DOMAIN
-from .coordinator import BMWDataUpdateCoordinator
+from . import BMWConfigEntry
 
 ATTR_LAT = "lat"
 ATTR_LOCATION_ATTRIBUTES = ["street", "city", "postal_code", "country"]
@@ -39,12 +41,16 @@ def get_service(
     discovery_info: DiscoveryInfoType | None = None,
 ) -> BMWNotificationService:
     """Get the BMW notification service."""
-    coordinator: BMWDataUpdateCoordinator = hass.data[DOMAIN][
+    config_entry: BMWConfigEntry | None = hass.config_entries.async_get_entry(
         (discovery_info or {})[CONF_ENTITY_ID]
-    ]
+    )
 
     targets = {}
-    if not coordinator.read_only:
+    if (
+        config_entry
+        and (coordinator := config_entry.runtime_data.coordinator)
+        and not coordinator.read_only
+    ):
         targets.update({v.name: v for v in coordinator.account.vehicles})
     return BMWNotificationService(targets)
 
@@ -87,7 +93,11 @@ class BMWNotificationService(BaseNotificationService):
                         if k in ATTR_LOCATION_ATTRIBUTES
                     }
                 )
-
-                await vehicle.remote_services.trigger_send_poi(location_dict)
+                try:
+                    await vehicle.remote_services.trigger_send_poi(location_dict)
+                except TypeError as ex:
+                    raise ValueError(str(ex)) from ex
+                except MyBMWAPIError as ex:
+                    raise HomeAssistantError(ex) from ex
             else:
                 raise ValueError(f"'data.{ATTR_LOCATION}' is required.")

@@ -1,4 +1,5 @@
 """Camera platform that receives images through HTTP POST."""
+
 from __future__ import annotations
 
 import asyncio
@@ -7,11 +8,15 @@ from datetime import timedelta
 import logging
 
 import aiohttp
-import async_timeout
 import voluptuous as vol
 
 from homeassistant.components import webhook
-from homeassistant.components.camera import DOMAIN, PLATFORM_SCHEMA, STATE_IDLE, Camera
+from homeassistant.components.camera import (
+    DOMAIN,
+    PLATFORM_SCHEMA as CAMERA_PLATFORM_SCHEMA,
+    STATE_IDLE,
+    Camera,
+)
 from homeassistant.const import CONF_NAME, CONF_TIMEOUT, CONF_WEBHOOK_ID
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
@@ -32,7 +37,7 @@ ATTR_LAST_TRIP = "last_trip"
 
 PUSH_CAMERA_DATA = "push_camera"
 
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
+PLATFORM_SCHEMA = CAMERA_PLATFORM_SCHEMA.extend(
     {
         vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
         vol.Optional(CONF_BUFFER_SIZE, default=1): cv.positive_int,
@@ -74,9 +79,9 @@ async def async_setup_platform(
 async def handle_webhook(hass, webhook_id, request):
     """Handle incoming webhook POST with image files."""
     try:
-        async with async_timeout.timeout(5):
+        async with asyncio.timeout(5):
             data = dict(await request.post())
-    except (asyncio.TimeoutError, aiohttp.web.HTTPException) as error:
+    except (TimeoutError, aiohttp.web.HTTPException) as error:
         _LOGGER.error("Could not get information from POST <%s>", error)
         return
 

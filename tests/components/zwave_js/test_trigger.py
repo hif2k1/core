@@ -1,4 +1,5 @@
 """The tests for Z-Wave JS automation triggers."""
+
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -19,7 +20,7 @@ from homeassistant.components.zwave_js.triggers.trigger_helpers import (
 )
 from homeassistant.const import CONF_PLATFORM, SERVICE_RELOAD
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import async_get as async_get_dev_reg
+from homeassistant.helpers import device_registry as dr
 from homeassistant.setup import async_setup_component
 
 from .common import SCHLAGE_BE469_LOCK_ENTITY
@@ -28,14 +29,17 @@ from tests.common import async_capture_events
 
 
 async def test_zwave_js_value_updated(
-    hass: HomeAssistant, client, lock_schlage_be469, integration
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    client,
+    lock_schlage_be469,
+    integration,
 ) -> None:
     """Test for zwave_js.value_updated automation trigger."""
     trigger_type = f"{DOMAIN}.value_updated"
     node: Node = lock_schlage_be469
-    dev_reg = async_get_dev_reg(hass)
-    device = dev_reg.async_get_device(
-        {get_device_id(client.driver, lock_schlage_be469)}
+    device = device_registry.async_get_device(
+        identifiers={get_device_id(client.driver, lock_schlage_be469)}
     )
     assert device
 
@@ -272,7 +276,7 @@ async def test_zwave_js_value_updated(
 
     clear_events()
 
-    with patch("homeassistant.config.load_yaml", return_value={}):
+    with patch("homeassistant.config.load_yaml_dict", return_value={}):
         await hass.services.async_call(automation.DOMAIN, SERVICE_RELOAD, blocking=True)
 
 
@@ -452,14 +456,17 @@ async def test_zwave_js_value_updated_bypass_dynamic_validation_no_driver(
 
 
 async def test_zwave_js_event(
-    hass: HomeAssistant, client, lock_schlage_be469, integration
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    client,
+    lock_schlage_be469,
+    integration,
 ) -> None:
     """Test for zwave_js.event automation trigger."""
     trigger_type = f"{DOMAIN}.event"
     node: Node = lock_schlage_be469
-    dev_reg = async_get_dev_reg(hass)
-    device = dev_reg.async_get_device(
-        {get_device_id(client.driver, lock_schlage_be469)}
+    device = device_registry.async_get_device(
+        identifiers={get_device_id(client.driver, lock_schlage_be469)}
     )
     assert device
 
@@ -834,7 +841,7 @@ async def test_zwave_js_event(
 
     clear_events()
 
-    with patch("homeassistant.config.load_yaml", return_value={}):
+    with patch("homeassistant.config.load_yaml_dict", return_value={}):
         await hass.services.async_call(automation.DOMAIN, SERVICE_RELOAD, blocking=True)
 
 
@@ -1008,12 +1015,15 @@ async def test_invalid_trigger_configs(hass: HomeAssistant) -> None:
 
 
 async def test_zwave_js_trigger_config_entry_unloaded(
-    hass: HomeAssistant, client, lock_schlage_be469, integration
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    client,
+    lock_schlage_be469,
+    integration,
 ) -> None:
     """Test zwave_js triggers bypass dynamic validation when needed."""
-    dev_reg = async_get_dev_reg(hass)
-    device = dev_reg.async_get_device(
-        {get_device_id(client.driver, lock_schlage_be469)}
+    device = device_registry.async_get_device(
+        identifiers={get_device_id(client.driver, lock_schlage_be469)}
     )
     assert device
 
@@ -1158,7 +1168,7 @@ async def test_server_reconnect_event(
         data={
             "source": "controller",
             "event": "node removed",
-            "replaced": False,
+            "reason": 0,
             "node": lock_schlage_be469_state,
         },
     )
@@ -1238,7 +1248,7 @@ async def test_server_reconnect_value_updated(
         data={
             "source": "controller",
             "event": "node removed",
-            "replaced": False,
+            "reason": 0,
             "node": lock_schlage_be469_state,
         },
     )

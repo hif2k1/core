@@ -1,4 +1,5 @@
 """Tests for LCN device triggers."""
+
 from pypck.inputs import ModSendKeysHost, ModStatusAccessControl
 from pypck.lcn_addr import LcnAddr
 from pypck.lcn_defs import AccessControlPeriphery, KeyAction, SendKeyCommand
@@ -10,7 +11,7 @@ from homeassistant.components.device_automation import DeviceAutomationType
 from homeassistant.components.lcn import device_trigger
 from homeassistant.components.lcn.const import DOMAIN, KEY_ACTIONS, SENDKEYS
 from homeassistant.const import CONF_DEVICE_ID, CONF_DOMAIN, CONF_PLATFORM, CONF_TYPE
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.setup import async_setup_component
 
@@ -33,13 +34,13 @@ async def test_get_triggers_module_device(
             CONF_DEVICE_ID: device.id,
             "metadata": {},
         }
-        for trigger in [
+        for trigger in (
             "transmitter",
             "transponder",
             "fingerprint",
             "codelock",
             "send_keys",
-        ]
+        )
     ]
 
     triggers = await async_get_device_automations(
@@ -49,16 +50,17 @@ async def test_get_triggers_module_device(
 
 
 async def test_get_triggers_non_module_device(
-    hass: HomeAssistant, entry, lcn_connection
+    hass: HomeAssistant, device_registry: dr.DeviceRegistry, entry, lcn_connection
 ) -> None:
     """Test we get the expected triggers from a LCN non-module device."""
     not_included_types = ("transmitter", "transponder", "fingerprint", "send_keys")
 
-    device_registry = dr.async_get(hass)
-    host_device = device_registry.async_get_device({(DOMAIN, entry.entry_id)})
+    host_device = device_registry.async_get_device(
+        identifiers={(DOMAIN, entry.entry_id)}
+    )
     group_device = get_device(hass, entry, (0, 5, True))
     resource_device = device_registry.async_get_device(
-        {(DOMAIN, f"{entry.entry_id}-m000007-output1")}
+        identifiers={(DOMAIN, f"{entry.entry_id}-m000007-output1")}
     )
 
     for device in (host_device, group_device, resource_device):
@@ -70,7 +72,7 @@ async def test_get_triggers_non_module_device(
 
 
 async def test_if_fires_on_transponder_event(
-    hass: HomeAssistant, calls, entry, lcn_connection
+    hass: HomeAssistant, service_calls: list[ServiceCall], entry, lcn_connection
 ) -> None:
     """Test for transponder event triggers firing."""
     address = (0, 7, False)
@@ -109,15 +111,15 @@ async def test_if_fires_on_transponder_event(
     await lcn_connection.async_process_input(inp)
     await hass.async_block_till_done()
 
-    assert len(calls) == 1
-    assert calls[0].data == {
+    assert len(service_calls) == 1
+    assert service_calls[0].data == {
         "test": "test_trigger_transponder",
         "code": "aabbcc",
     }
 
 
 async def test_if_fires_on_fingerprint_event(
-    hass: HomeAssistant, calls, entry, lcn_connection
+    hass: HomeAssistant, service_calls: list[ServiceCall], entry, lcn_connection
 ) -> None:
     """Test for fingerprint event triggers firing."""
     address = (0, 7, False)
@@ -156,15 +158,15 @@ async def test_if_fires_on_fingerprint_event(
     await lcn_connection.async_process_input(inp)
     await hass.async_block_till_done()
 
-    assert len(calls) == 1
-    assert calls[0].data == {
+    assert len(service_calls) == 1
+    assert service_calls[0].data == {
         "test": "test_trigger_fingerprint",
         "code": "aabbcc",
     }
 
 
 async def test_if_fires_on_codelock_event(
-    hass: HomeAssistant, calls, entry, lcn_connection
+    hass: HomeAssistant, service_calls: list[ServiceCall], entry, lcn_connection
 ) -> None:
     """Test for codelock event triggers firing."""
     address = (0, 7, False)
@@ -203,15 +205,15 @@ async def test_if_fires_on_codelock_event(
     await lcn_connection.async_process_input(inp)
     await hass.async_block_till_done()
 
-    assert len(calls) == 1
-    assert calls[0].data == {
+    assert len(service_calls) == 1
+    assert service_calls[0].data == {
         "test": "test_trigger_codelock",
         "code": "aabbcc",
     }
 
 
 async def test_if_fires_on_transmitter_event(
-    hass: HomeAssistant, calls, entry, lcn_connection
+    hass: HomeAssistant, service_calls: list[ServiceCall], entry, lcn_connection
 ) -> None:
     """Test for transmitter event triggers firing."""
     address = (0, 7, False)
@@ -256,8 +258,8 @@ async def test_if_fires_on_transmitter_event(
     await lcn_connection.async_process_input(inp)
     await hass.async_block_till_done()
 
-    assert len(calls) == 1
-    assert calls[0].data == {
+    assert len(service_calls) == 1
+    assert service_calls[0].data == {
         "test": "test_trigger_transmitter",
         "code": "aabbcc",
         "level": 0,
@@ -267,7 +269,7 @@ async def test_if_fires_on_transmitter_event(
 
 
 async def test_if_fires_on_send_keys_event(
-    hass: HomeAssistant, calls, entry, lcn_connection
+    hass: HomeAssistant, service_calls: list[ServiceCall], entry, lcn_connection
 ) -> None:
     """Test for send_keys event triggers firing."""
     address = (0, 7, False)
@@ -307,8 +309,8 @@ async def test_if_fires_on_send_keys_event(
     await lcn_connection.async_process_input(inp)
     await hass.async_block_till_done()
 
-    assert len(calls) == 1
-    assert calls[0].data == {
+    assert len(service_calls) == 1
+    assert service_calls[0].data == {
         "test": "test_trigger_send_keys",
         "key": "a1",
         "action": "hit",

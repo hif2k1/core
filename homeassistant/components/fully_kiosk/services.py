@@ -1,4 +1,5 @@
 """Services for the Fully Kiosk Browser integration."""
+
 from __future__ import annotations
 
 import voluptuous as vol
@@ -12,9 +13,12 @@ import homeassistant.helpers.device_registry as dr
 
 from .const import (
     ATTR_APPLICATION,
+    ATTR_KEY,
     ATTR_URL,
+    ATTR_VALUE,
     DOMAIN,
     SERVICE_LOAD_URL,
+    SERVICE_SET_CONFIG,
     SERVICE_START_APPLICATION,
 )
 from .coordinator import FullyKioskDataUpdateCoordinator
@@ -62,6 +66,25 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         for coordinator in await collect_coordinators(call.data[ATTR_DEVICE_ID]):
             await coordinator.fully.startApplication(call.data[ATTR_APPLICATION])
 
+    async def async_set_config(call: ServiceCall) -> None:
+        """Set a Fully Kiosk Browser config value on the device."""
+        for coordinator in await collect_coordinators(call.data[ATTR_DEVICE_ID]):
+            key = call.data[ATTR_KEY]
+            value = call.data[ATTR_VALUE]
+
+            # Fully API has different methods for setting string and bool values.
+            # check if call.data[ATTR_VALUE] is a bool
+            if isinstance(value, bool) or (
+                isinstance(value, str) and value.lower() in ("true", "false")
+            ):
+                await coordinator.fully.setConfigurationBool(key, value)
+            else:
+                # Convert any int values to string
+                if isinstance(value, int):
+                    value = str(value)
+
+                await coordinator.fully.setConfigurationString(key, value)
+
     # Register all the above services
     service_mapping = [
         (async_load_url, SERVICE_LOAD_URL, ATTR_URL),
@@ -81,3 +104,18 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 )
             ),
         )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_CONFIG,
+        async_set_config,
+        schema=vol.Schema(
+            vol.All(
+                {
+                    vol.Required(ATTR_DEVICE_ID): cv.ensure_list,
+                    vol.Required(ATTR_KEY): cv.string,
+                    vol.Required(ATTR_VALUE): vol.Any(str, bool, int),
+                }
+            )
+        ),
+    )
